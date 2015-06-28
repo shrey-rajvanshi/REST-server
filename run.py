@@ -14,12 +14,11 @@ es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
 
 cache = Cache(app, config={
     'CACHE_TYPE': 'redis',
-    'CACHE_KEY_PREFIX': 'fcache',
-    'CACHE_REDIS_HOST': 'localhost',
+    'CACHE_KEY_PREFIX': 'redfcache',
+    'CACHE_REDIS_HOST': '127.0.0.1',
     'CACHE_REDIS_PORT': '6379',
-    'CACHE_REDIS_URL': 'redis://localhost:6379'
+    'CACHE_REDIS_URL': 'redis://127.0.0.1:6379'
     })
-@cache.cached(timeout=5000)
 @app.route('/alldoctors')
 def get_all_doctors():
     doctor_data = {}
@@ -48,8 +47,9 @@ def get_all_doctors():
 
 
 
-@cache.cached(timeout=5000)
+
 @app.route('/doctor/<doc_id>')
+@cache.memoize(timeout=5000)
 def get_doctor_profile(doc_id):
     d=Doctor.query.get(doc_id)
     if not d.published:
@@ -82,7 +82,7 @@ def get_doctor_profile(doc_id):
       if(k[0]!='_'):
         doctor[k]=v
     response= {'data': d.serialize(), 'success':True}'''
-    return json.dumps(response,mimetype = "text/json")
+    return json.dumps(response)
     #return json.dumps(d.__dict__)
 
 
@@ -167,8 +167,9 @@ def homequery(city,query_term):
     return json.dumps(response)
 
 #---------------------------------------------------------------------Querying---------------------------------------------------------------
-@cache.cached(timeout=5000)
+
 @app.route('/<city_term>/<query_term>')
+@cache.memoize(timeout=5000)
 def SearchSpecLocation(city_term,query_term):
     try:
         searchedSpecId=Speciality.query.filter(Speciality.name == \

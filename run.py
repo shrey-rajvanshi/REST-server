@@ -3,7 +3,8 @@ from flask import Flask
 from models import *
 import json
 from elasticsearch import Elasticsearch
-
+from flask.ext.cache import Cache
+import redis
 init_db()
 
 app = Flask(__name__)
@@ -11,7 +12,14 @@ app = Flask(__name__)
 
 es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
 
-
+cache = Cache(app, config={
+    'CACHE_TYPE': 'redis',
+    'CACHE_KEY_PREFIX': 'fcache',
+    'CACHE_REDIS_HOST': 'localhost',
+    'CACHE_REDIS_PORT': '6379',
+    'CACHE_REDIS_URL': 'redis://localhost:6379'
+    })
+@cache.cached(timeout=5000)
 @app.route('/alldoctors')
 def get_all_doctors():
     doctor_data = {}
@@ -40,7 +48,7 @@ def get_all_doctors():
 
 
 
-
+@cache.cached(timeout=5000)
 @app.route('/doctor/<doc_id>')
 def get_doctor_profile(doc_id):
     d=Doctor.query.get(doc_id)
@@ -159,15 +167,31 @@ def homequery(city,query_term):
     return json.dumps(response)
 
 #---------------------------------------------------------------------Querying---------------------------------------------------------------
-
+@cache.cached(timeout=5000)
 @app.route('/<city_term>/<query_term>')
 def SearchSpecLocation(city_term,query_term):
-    
-    jsonresult= homequery(location_term,query_term)
+    try:
+        searchedSpecId=Speciality.query.filter(Speciality.name == \
+        query_term).first().id 
+    except:
+        return "Speciality Not found. <a href = './../../'>Go back</a>"
 
-@app.route('/<location_term>/<query_term>/<spec_term>')
-def getMoreSearch(location_term,query_term):
-    jsonresult= homequery(location_term,query_term)
+    try:
+        searched_City_Id = City.query.filter(City.name ==city_term).first().id
+    except:
+        return "No city like %s found"%city_term
+    
+    list_of_doc_specs = doc_spec.query.filter(doc_spec.spec_id == searchedSpecId).all()
+
+    list_of_potential_doc_ids = [l.doc_id for l in list_of_doc_specs]
+
+    list_of_doc_queries = Doctor.query.filter(Doctor.id.in_(list_of_potential_doc_ids)). \
+    filter(Doctor.city ==searched_City_Id )
+
+    list_of_doc_ids=[]
+    for l in list_of_doc_queries:
+        list_of_doc_ids.append({"id":str(l.id),"name":str(l.name),"photo":str(l.photo),"experience":str(l.experience)})
+    return json.dumps({"results":list_of_doc_ids,"success":True})
 
 #-----------------------------------------------------------------------End of Views----------------------------------------------------------
 

@@ -36,8 +36,9 @@ def get_all_doctors():
     		clinicMap={}
 	    	clinicMap["name"] = clinic.name
 	    	clinicMap["address"] = clinic.address
-	    	clinicMap["fees"] = assoc_doc_clinic.query.filter(assoc_doc_clinic.doc_id==d.id,
-                    assoc_doc_clinic.clinic_id == clinic.id).first().fees
+	    	clinicMap["fees"] = assoc_doc_clinic.query.filter(\
+                assoc_doc_clinic.doc_id == d.id,assoc_doc_clinic.clinic_id == \
+                clinic.id).first().fees
 	    	clinicList.append(clinicMap)
     	doctor_data["clinics"] = clinicList
     	doctor_data['specialities'] = [speciality.name for speciality in d.specialities]
@@ -53,7 +54,8 @@ def get_all_doctors():
 def get_doctor_profile(doc_id):
     d=Doctor.query.get(doc_id)
     if not d.published:
-        return json.dumps({'success':False,'Error':'No such Doctor exists(or is published)'})
+        return json.dumps({'success':False,'Error':'No such Doctor exists\
+            (or is published)'})
     doctor = {}
     doctor['name'] = d.name
     doctor['id'] = d.id
@@ -126,7 +128,7 @@ def locationsearch(city,location_term):
     locality_list = []                                                   
     for loc in res['hits']['hits']:
         print loc
-        locality_list.append({"name":loc['_source']['name'], "type": "Locality"})
+        locality_list.append({"name":loc['_source']['name'],"type":"Locality"})
     response = {}
     response={"total":res['hits']['total'],"matches":locality_list}
     return json.dumps(response)
@@ -162,7 +164,8 @@ def homequery(city,query_term):
             hitlist.append({"name":hit['_source']['name'],"type" : "clinic"})
 
         if hit['_type']=="specialities":
-            hitlist.append({"name":hit['_source']['name'],"type" : "specialities"})
+            hitlist.append({"name":hit['_source']['name'],"type" : \
+                "specialities"})
     response = {"total":res['hits']['total'],"matches" : hitlist}
     return json.dumps(response)
 
@@ -176,7 +179,6 @@ def SearchSpecLocation(city_term,query_term):
         query_term).first().id 
     except:
         return "Speciality Not found. <a href = './../../'>Go back</a>"
-
     try:
         searched_City_Id = City.query.filter(City.name ==city_term).first().id
     except:
@@ -191,7 +193,9 @@ def SearchSpecLocation(city_term,query_term):
 
     list_of_doc_ids=[]
     for l in list_of_doc_queries:
-        list_of_doc_ids.append({"id":str(l.id),"name":str(l.name),"photo":str(l.photo),"experience":str(l.experience)})
+        list_of_doc_ids.append({"id" : str(l.id), 
+            "name" : str(l.name), "photo" : str(l.photo), 
+            "experience" : str(l.experience)})
     return json.dumps({"results":list_of_doc_ids,"success":True})
 
 #-----------------------------------------------------------------------End of Views----------------------------------------------------------

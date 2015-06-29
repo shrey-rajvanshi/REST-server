@@ -140,7 +140,8 @@ def homequery(city,query_term):
         of a doctor , clinic, or speciality.      '''
 
     res=es.search(index="practo_index", 
-    body={  "query":{
+   
+  body={  "query":{
                 "filtered":{
                     "query":{
                         "query_string": {   
@@ -148,7 +149,13 @@ def homequery(city,query_term):
                         }
                     },
                     "filter":{
-                        "term": {"city": city.lower()}
+                        "or":[{
+                                "term": {"city": city.lower()}
+                            },
+                            {
+                                "term":{"_type":"specialities"}
+                            }
+                        ]
                     }
                 }      
            }

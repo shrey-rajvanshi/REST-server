@@ -32,6 +32,7 @@ def get_all_doctors():
     	doctor_data['email'] = d.email
     	doctor_data['recommendations']=d.recommendations
     	doctor_data['photo']=d.photo
+        doctor_data['location'] =Locality.query.get(d.locality).name
     	for clinic in d.clinics:
     		clinicMap={}
 	    	clinicMap["name"] = clinic.name
@@ -64,7 +65,7 @@ def get_doctor_profile(doc_id):
     doctor['experience'] = d.experience
     doctor['qualification']=d.qualification
     doctor['locality'] = Locality.query.get(d.locality).name
-    doctor['city'] = City.query.get(d.city).name
+    doctor['city'] = City.query.get(Locality.query.get(d.locality).city_id).name
     doctor['photo'] = d.photo
     doctor['salutation'] = d.salutation
     clinicLists =[]
@@ -78,6 +79,7 @@ def get_doctor_profile(doc_id):
                     assoc_doc_clinic.clinic_id == clinic.id).first().timings
         clinicLists.append(clinicmap)
     doctor['clinics'] = clinicLists
+    doctor['specialities'] = [{"name":spec.name} for spec in d.specialities]
     response= {'data': doctor, 'success':True}
     '''
     for k,v in d.__dict__.iteritems():
@@ -185,7 +187,8 @@ def SearchSpecLocation(city_term,query_term):
         searchedSpecId=Speciality.query.filter(Speciality.name == \
         query_term).first().id 
     except:
-        return "Speciality Not found. <a href = './../../'>Go back</a>"
+        return json.dumps({"success":False,
+         "results":"Speciality Not found. <a href = './../../'>Go back</a>"})
     try:
         searched_City_Id = City.query.filter(City.name ==city_term).first().id
     except:
@@ -195,13 +198,23 @@ def SearchSpecLocation(city_term,query_term):
 
     list_of_potential_doc_ids = [l.doc_id for l in list_of_doc_specs]
 
-    list_of_doc_queries = Doctor.query.filter(Doctor.id.in_(list_of_potential_doc_ids)). \
-    filter(Doctor.city ==searched_City_Id )
+    list_of_doc_queries = Doctor.query.filter(Doctor.id.in_(list_of_potential_doc_ids))
+    #        .filter(Locality.query.get(Doctor.locality).city_id == searched_City_Id )
+
+    list_of_final_docs=[]
+    for d in list_of_doc_queries:
+        if Locality.query.get(d.locality).city_id == searched_City_Id:
+            list_of_final_docs.append(d)
+
 
     list_of_doc_ids=[]
-    for l in list_of_doc_queries:
+    for l in list_of_final_docs:
         list_of_doc_ids.append({"id" : str(l.id), 
             "name" : str(l.name), "photo" : str(l.photo), 
+            "qualification":str(l.qualification),
+            "recommendations":str(l.recommendations),
+            "salutation":str(l.salutation),
+            "locality": Locality.query.get(l.locality).name,
             "experience" : str(l.experience)})
     return json.dumps({"results":list_of_doc_ids,"success":True})
 
